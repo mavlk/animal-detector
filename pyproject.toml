@@ -1,0 +1,73 @@
+[project]
+name = "animal-detector"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Karel Vlk",email = "kaja.vlk@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit (>=1.54.0,<2.0.0)",
+    "ultralytics (>=8.4.14,<9.0.0)",
+    "plotly (>=5.0.0,<7.0.0)",
+    "Pillow (>=10.0.0,<12.0.0)",
+]
+
+
+[tool.poetry]
+packages = [{include = "animal_detector", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+# -------------------------
+# Ruff configuration
+# -------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# -------------------------
+# MyPy configuration
+# -------------------------
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["animal_detector"]
+
+warn_unused_configs = true
+warn_return_any = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+plugins = []
+
+[[tool.mypy.overrides]]
+module = [
+    "ultralytics",
+    "plotly.*",
+]
+ignore_missing_imports = true
+follow_untyped_imports = false

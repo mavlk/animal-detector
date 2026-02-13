@@ -1,0 +1,7 @@
+.venv/
+.DS_Store
+__pycache__/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.claude/
