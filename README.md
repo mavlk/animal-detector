@@ -24,7 +24,7 @@ source .venv/bin/activate   # Linux / macOS
 pip install -e .
 ```
 
-## Run
+## Streamlit App
 
 ```bash
 poetry run streamlit run src/animal_detector/streamlit_app.py
@@ -37,6 +37,25 @@ Or with a manual venv:
 ```
 
 The app opens at [http://localhost:8501](http://localhost:8501).
+
+## Batch Report
+
+Process a directory of images and generate a Markdown report that groups images
+by detected object type. The report covers images where only a single object type
+was detected, and includes summary statistics.
+
+### Usage
+
+The `scripts/run_report.sh` script handles building the Docker image and running
+the report in a single command:
+
+```bash
+./scripts/run_report.sh /path/to/images # saves to out/reports/animal_detection_report_<timestamp>.md
+OR
+./scripts/run_report.sh /path/to/images results.md # saves to out/reports/results.md
+OR
+./scripts/run_report.sh /path/to/images results.md 0.15 # custom confidence
+```
 
 ## Linting and type checking
 

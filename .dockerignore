@@ -1,8 +1,9 @@
 .venv/
-.DS_Store
-__pycache__/
+.git/
 .ruff_cache/
 .mypy_cache/
 .pytest_cache/
 .claude/
-out/
+__pycache__/
+*.pyc
+.DS_Store
