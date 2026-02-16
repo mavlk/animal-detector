@@ -1,18 +1,18 @@
-from pathlib import Path
-
 import streamlit as st
 from PIL import Image
 
+from animal_detector.modules.config import CONFIDENCE_THRESHOLD, GRAYSCALE, WEIGHTS_PATH
 from animal_detector.modules.pipeline import DetectionPipeline
 from animal_detector.modules.plotter import InteractivePlotter, summarize_detections
 
-WEIGHTS_PATH = Path(__file__).resolve().parent.parent.parent / "weights" / "yolo_animal_detector.pt"
 MAX_UPLOADS = 10
 
 
 @st.cache_resource
-def load_pipeline() -> DetectionPipeline:
-    return DetectionPipeline(WEIGHTS_PATH, confidence_threshold=0.1)
+def load_pipeline(grayscale: bool = GRAYSCALE) -> DetectionPipeline:
+    return DetectionPipeline(
+        WEIGHTS_PATH, confidence_threshold=CONFIDENCE_THRESHOLD, grayscale=grayscale
+    )
 
 
 def main() -> None:
@@ -21,12 +21,17 @@ def main() -> None:
     )
     st.title("Animal Detector")
 
-    pipeline = load_pipeline()
-    plotter = InteractivePlotter()
-
     # ── Sidebar filters ──────────────────────────────────────────────
     st.sidebar.header("Filters")
-    conf_threshold = st.sidebar.slider("Min confidence", 0.0, 1.0, value=0.1, step=0.05)
+    grayscale = st.sidebar.toggle(
+        "Grayscale", value=GRAYSCALE, help="Convert images to grayscale before detection"
+    )
+    conf_threshold = st.sidebar.slider(
+        "Min confidence", 0.0, 1.0, value=CONFIDENCE_THRESHOLD, step=0.05
+    )
+
+    pipeline = load_pipeline(grayscale=grayscale)
+    plotter = InteractivePlotter()
 
     uploaded_files = st.file_uploader(
         "Upload images (up to 10)",
