@@ -67,9 +67,9 @@ _BBOX_COLORS = [
 
 
 def collect_images(input_dir: Path) -> list[Path]:
-    """Return sorted list of image files in the directory."""
+    """Return sorted list of image files in the directory and all subdirectories."""
     return sorted(
-        p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+        p for p in input_dir.rglob("*") if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
     )
 
 
@@ -132,8 +132,11 @@ def process_images(
     pipeline: DetectionPipeline,
     image_paths: list[Path],
     detections_dir: Path,
+    input_dir: Path,
 ) -> tuple[DetectionResults, list[ImageEmbeddingInfo], dict[str, tuple[int, int, int]]]:
     """Run detection on all images, save per-image outputs, and classify them.
+
+    Directory structure from *input_dir* is mirrored inside *detections_dir*.
 
     Returns a tuple of:
       - DetectionResults dict
@@ -151,7 +154,9 @@ def process_images(
 
     total = len(image_paths)
     for i, path in enumerate(image_paths, 1):
-        print(f"  [{i}/{total}] {path.name}", flush=True)  # noqa: T201
+        rel_path = path.relative_to(input_dir)
+        rel_str = str(rel_path)
+        print(f"  [{i}/{total}] {rel_str}", flush=True)  # noqa: T201
         image = Image.open(path).convert("RGB")
         result = pipeline.run(image)
 
@@ -160,12 +165,16 @@ def process_images(
             if det.label not in label_colors:
                 label_colors[det.label] = _BBOX_COLORS[len(label_colors) % len(_BBOX_COLORS)]
 
+        # Mirror input subdirectory structure inside detections_dir
+        out_subdir = detections_dir / rel_path.parent
+        out_subdir.mkdir(parents=True, exist_ok=True)
+
         # Save bbox plot and JSON
         stem = path.stem
         _save_bbox_plot(
-            image, result.detections, detections_dir / f"{stem}_bbox_plot.jpg", label_colors
+            image, result.detections, out_subdir / f"{stem}_bbox_plot.jpg", label_colors
         )
-        _save_bbox_json(path.name, result.detections, detections_dir / f"{stem}_bbox_pred.json")
+        _save_bbox_json(rel_str, result.detections, out_subdir / f"{stem}_bbox_pred.json")
 
         # Extract embeddings from all configured layers in one forward pass
         layer_indices = [idx for idx, _key, _name in EMBEDDING_LAYERS]
@@ -175,7 +184,7 @@ def process_images(
         }
         embedding_infos.append(
             ImageEmbeddingInfo(
-                filename=path.name,
+                filename=rel_str,
                 embeddings=embeddings_by_key,
                 detection_counts=dict(result.summary),
             )
@@ -189,12 +198,12 @@ def process_images(
             contains_type[label] += 1
 
         if len(unique_labels) == 0:
-            no_detections.append(path.name)
+            no_detections.append(rel_str)
         elif len(unique_labels) == 1:
             label = next(iter(unique_labels))
-            single_type[label].append(path.name)
+            single_type[label].append(rel_str)
         else:
-            multi_type.append((path.name, unique_labels))
+            multi_type.append((rel_str, unique_labels))
 
     results: DetectionResults = {
         "single_type": dict(single_type),
@@ -299,9 +308,13 @@ def _plot_embedding(
 
 
 def _image_preview(fname: str) -> str:
-    """Return a markdown image tag linking to the bbox plot for *fname*."""
-    stem = Path(fname).stem
-    return f"![{fname}](detections_dir/{stem}_bbox_plot.jpg)"
+    """Return a markdown image tag linking to the bbox plot for *fname*.
+
+    *fname* may contain subdirectory components (e.g. ``sub/img.png``).
+    """
+    p = Path(fname)
+    plot_name = f"{p.stem}_bbox_plot.jpg"
+    return f"![{fname}](detections_dir/{p.parent / plot_name})"
 
 
 def generate_report(
@@ -512,7 +525,7 @@ def main(argv: list[str] | None = None) -> None:
 
     print("Processing images:")  # noqa: T201
     results, embedding_infos, label_colors = process_images(
-        pipeline, image_paths, detections_dir
+        pipeline, image_paths, detections_dir, input_dir
     )
 
     embeddings_json_path = detections_dir / "embeddings.json"
